@@ -37,10 +37,16 @@
 
 // cada filme tem uma classificação indicativa
 
+// a classificação indicativa é um valor numérico comparável à idade do espectador
+
 
 // devem existir espectadores
 
 // cada espectador tem uma idade
+
+// a idade do espectador é um valor numérico comparável à classificação indicativa do filme
+
+// um espectador não pode ter mais de um ingresso para a mesma sessão
 
 
 // devem existir sessões
@@ -53,16 +59,19 @@
 
 // cada sessão tem um horário de início
 
+// o complexo de uma sessão é derivado via: sessão -> sala -> complexo
+
 
 // devem existir ingressos
 
 // cada ingresso está associado a um espectador e a uma sessão
 
+// cada ingresso tem um atributo que indica se é cortesia ou não
 
 
 // REGRAS DE NEGÓCIO
 
-// o formato do filme deve ser compatível com o formato da sala da sessão
+// o formato do filme deve ser IGUAL ao formato da sala da sessão
 
 // o número de ingressos de uma sessão não pode ultrapassar a capacidade da sala
 
@@ -70,10 +79,18 @@
 
 // entre duas sessões CONSECUTIVAS na mesma sala deve existir um intervalo mínimo fixo
 
+// o intervalo mínimo é: duração da sessão (120 min) + intervalo de limpeza (30 min) = 150 min
+
 
 
 // FIDELIDADE
 
 // a contagem de filmes assistidos pelo espectador é derivada dos seus ingressos
 
-// ingresso cortesia é resgatado quando espectador assiste 5 filmes no mesmo complexo nos últimos 30 dias
+// a condição de fidelidade considera apenas ingressos dos últimos 30 dias
+
+// a condição de fidelidade exige 5 filmes DISTINTOS no mesmo complexo
+
+// espectador só pode ter ingresso cortesia se satisfizer a condição de fidelidade
+
+// ingresso cortesia é resgatado quando espectador assiste 5 filmes DISTINTOS no mesmo complexo nos últimos 30 dias
