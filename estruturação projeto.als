@@ -81,6 +81,8 @@
 
 // o intervalo mínimo é: duração da sessão (120 min) + intervalo de limpeza (30 min) = 150 min
 
+//duas sessões na mesma sala não podem ocorrer simultaneamente
+
 
 
 // FIDELIDADE
@@ -112,8 +114,10 @@
 
 //um espectador não pode ter mais de um ingresso cortesia ativo simultaneamente?
 
-//ingresso cortesia NÃO conta para a contagem de fidelidade (apenas ingressos normais contam)?
+//ingressos cortesia NÃO contam para o programa de fidelidade (confirmada pelo cliente)
 
 //o "agora" da fidelidade é representado por um valor Int fixo no modelo (tempo de referência)?
 
 //os 30 dias são representados como um intervalo numérico relativo ao tempo de referência?
+
+//a capacidade é uma propriedade fixa da sala (confirmada pelo cliente)
