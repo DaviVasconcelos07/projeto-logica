@@ -94,3 +94,26 @@
 // espectador só pode ter ingresso cortesia se satisfizer a condição de fidelidade
 
 // ingresso cortesia é resgatado quando espectador assiste 5 filmes DISTINTOS no mesmo complexo nos últimos 30 dias
+
+
+
+// AMBIGUIDADES/EDGE CASES
+
+
+//uma sessão pode existir sem nenhum ingresso vendido (sala vazia é permitida)?
+
+//um espectador pode existir no sistema sem nunca ter comprado ingresso?
+
+//uma sala pode existir sem nenhuma sessão agendada?
+
+//um filme pode existir no sistema sem ter nenhuma sessão agendada?
+
+//um complexo deve ter pelo menos UMA sala (N >= 1)?
+
+//um espectador não pode ter mais de um ingresso cortesia ativo simultaneamente?
+
+//ingresso cortesia NÃO conta para a contagem de fidelidade (apenas ingressos normais contam)?
+
+//o "agora" da fidelidade é representado por um valor Int fixo no modelo (tempo de referência)?
+
+//os 30 dias são representados como um intervalo numérico relativo ao tempo de referência?
