@@ -71,7 +71,6 @@ sig Espectador {
 -- INGRESSO
 -- cada ingresso esta associado a uma sessao e a um espectador
 -- cortesia: Bool indica se e ingresso de fidelidade (True) ou normal (False)
--- conforme diagrama: unico sig com atributo cortesia
 -- ============================================================
 sig Ingresso {
     sessao:     one Sessao,
@@ -82,8 +81,12 @@ sig Ingresso {
 -- ============================================================
 -- RELOGIO: ponto de referencia temporal do sistema
 -- Representa o "agora".
--- Os ultimos 30 dias sao o intervalo [agora.minus[30], agora].
--- Usamos 7 Int (range -64 a 63) para evitar overflow.
+-- ESCALA DE TEMPO: 1 unidade = 30 minutos
+--   - Duracao de uma sessao:  4 unidades (120 min)
+--   - Intervalo de limpeza:   1 unidade  (30 min)
+--   - Intervalo minimo total: 5 unidades (150 min)
+-- Com 6 Int (range -32 a 31): agora >= 6 garante janela
+-- de fidelidade calculavel sem valores negativos.
 -- ============================================================
 one sig Relogio {
     agora: one Int
@@ -92,15 +95,16 @@ one sig Relogio {
 -- ============================================================
 -- FUNCAO AUXILIAR: sessoes recentes de um espectador
 -- Retorna sessoes de ingressos NAO-cortesia (cortesia = False)
--- cujo inicio esteja dentro dos ultimos 30 dias.
--- Ingressos cortesia NAO contam para fidelidade (confirmado).
+-- cujo inicio esteja dentro dos ultimos 6 slots de tempo.
+-- Com 1 unidade = 30 min, 6 unidades = 180 min (janela de fidelidade).
+-- Ingressos cortesia NAO contam para fidelidade.
 -- ============================================================
 fun sessoesRecentes[e: Espectador] : set Sessao {
     { s: Sessao | some i: Ingresso |
         i.espectador = e
         and i.sessao = s
         and i.cortesia = False
-        and s.inicio >= Relogio.agora.minus[30]
+        and s.inicio >= Relogio.agora.minus[6]
         and s.inicio <= Relogio.agora
     }
 }
@@ -131,21 +135,22 @@ fact IdadePositiva {
 }
 
 -- o horario de inicio de toda sessao deve ser nao-negativo
--- sessoes podem ser passadas ou futuras (sistema gerencia agendamento)
 fact InicioNaoNegativo {
     all s: Sessao | s.inicio >= 0
 }
 
--- o "agora" do relogio deve ser >= 30 para que a janela
--- de fidelidade seja sempre calculavel sem valores negativos
-fact RelogioValido {
-    Relogio.agora >= 30
+-- limite superior dos horarios de inicio para evitar overflow nas operacoes
+-- de soma (plus[5]) usadas no intervalo entre sessoes.
+-- Com 6 Int (max = 31): garantimos inicio <= 25 para que inicio.plus[5] <= 30
+-- e nao ocorra overflow.
+fact InicioSemOverflow {
+    all s: Sessao | s.inicio <= 25
 }
 
--- todo ingresso pertence a um espectador e sessao reais
-fact IngressoSempreAssociado {
-    all i: Ingresso |
-        i.espectador in Espectador and i.sessao in Sessao
+-- o "agora" deve ser >= 6 para que a janela de fidelidade
+-- seja sempre calculavel sem valores negativos (com 6 Int)
+fact RelogioValido {
+    Relogio.agora >= 6
 }
 
 -- um espectador nao pode ter mais de um ingresso para a mesma sessao
@@ -182,8 +187,9 @@ fact ClassificacaoRespeitada {
 }
 
 -- REGRA 4: duas sessoes distintas na mesma sala devem ter intervalo
---          minimo de 5 unidades (representando 150 min: 120 de duracao
---          + 30 de limpeza). A semantica e: |inicio_s1 - inicio_s2| >= 5
+--          minimo de 5 unidades (150 min: 120 de duracao + 30 de limpeza).
+--          Cada unidade = 30 min.
+--          Semantica: |inicio_s1 - inicio_s2| >= 5
 fact IntervaloEntreSessoesDaMesmaSala {
     all s1, s2: Sessao |
         (s1 != s2 and s1.sala = s2.sala) implies
@@ -196,17 +202,17 @@ fact IntervaloEntreSessoesDaMesmaSala {
 
 -- REGRA DE FIDELIDADE:
 -- um espectador so pode ter ingresso cortesia (cortesia = True) se tiver
--- assistido a pelo menos 5 filmes DISTINTOS no mesmo complexo nos ultimos
--- 30 dias via ingressos normais (cortesia = False).
+-- assistido a pelo menos 5 filmes (sessoes, nao necessariamente distintas)
+-- no mesmo complexo nos ultimos 6 slots de tempo via ingressos normais
+-- (cortesia = False). Um mesmo filme em sessoes diferentes conta multiplas vezes.
 fact CondicaoFidelidade {
     all i: Ingresso |
         i.cortesia = True implies
             let c = i.sessao.sala.complexo |
-            let filmesNoComplexo = {
-                f: Filme | some s: sessoesRecentes[i.espectador] |
-                    s.sala.complexo = c and s.filme = f
+            let sessoesNoComplexo = {
+                s: sessoesRecentes[i.espectador] | s.sala.complexo = c
             } |
-            #filmesNoComplexo >= 5
+            #sessoesNoComplexo >= 5
 }
 
 -- um espectador nao pode ter mais de um ingresso cortesia por complexo
@@ -231,11 +237,11 @@ run show for 5 but
     4  Sessao,
     3  Espectador,
     6  Ingresso,
-    7  Int
+    6  Int
 
 -- instancia que demonstra o programa de fidelidade com ingresso cortesia:
--- requer ao menos 5 filmes distintos assistidos pelo mesmo espectador
--- no mesmo complexo dentro dos ultimos 30 dias
+-- requer ao menos 5 sessoes assistidas pelo mesmo espectador
+-- no mesmo complexo dentro dos ultimos 6 slots de tempo
 pred showComFidelidade {
     some i: Ingresso | i.cortesia = True
 }
@@ -246,7 +252,7 @@ run showComFidelidade for 8 but
     8  Sessao,
     2  Espectador,
     10 Ingresso,
-    7  Int
+    6  Int
 
 -- ============================================================
 -- ASSERTIONS (verificacoes de corretude)
@@ -257,42 +263,42 @@ assert SemDuplicataDeIngresso {
     no disj i1, i2: Ingresso |
         i1.espectador = i2.espectador and i1.sessao = i2.sessao
 }
-check SemDuplicataDeIngresso for 5 but 7 Int
+check SemDuplicataDeIngresso for 5 but 6 Int
 
 -- a capacidade da sala nunca e excedida
 assert CapacidadeNuncaExcedida {
     all s: Sessao |
         #{ i: Ingresso | i.sessao = s } <= s.sala.capacidade
 }
-check CapacidadeNuncaExcedida for 5 but 7 Int
+check CapacidadeNuncaExcedida for 5 but 6 Int
 
 -- o formato do filme sempre bate com o da sala
 assert FormatoSempreCompativel {
     all s: Sessao | s.filme.formato = s.sala.formato
 }
-check FormatoSempreCompativel for 5 but 7 Int
+check FormatoSempreCompativel for 5 but 6 Int
 
 -- nenhum espectador assiste filme com classificacao superior a sua idade
 assert ClassificacaoSempreRespeitada {
     all i: Ingresso |
         i.sessao.filme.classif <= i.espectador.idade
 }
-check ClassificacaoSempreRespeitada for 5 but 7 Int
+check ClassificacaoSempreRespeitada for 5 but 6 Int
 
 -- toda cortesia pertence a espectador que satisfaz a condicao de fidelidade
 assert CortesiaSoParaFieis {
     all i: Ingresso |
         i.cortesia = True implies
             let c = i.sessao.sala.complexo |
-            #{ f: Filme | some s: sessoesRecentes[i.espectador] |
-                   s.sala.complexo = c and s.filme = f } >= 5
+            #{ s: sessoesRecentes[i.espectador] | s.sala.complexo = c } >= 5
 }
-check CortesiaSoParaFieis for 7 but 7 Int
+check CortesiaSoParaFieis for 7 but 6 Int
 
--- sessoes na mesma sala sempre respeitam o intervalo minimo
+-- sessoes na mesma sala sempre respeitam o intervalo minimo de 5 unidades
 assert IntervaloSempreMantido {
     all s1, s2: Sessao |
         (s1 != s2 and s1.sala = s2.sala) implies
             (s1.inicio >= s2.inicio.plus[5] or s2.inicio >= s1.inicio.plus[5])
 }
-check IntervaloSempreMantido for 5 but 7 Int
+check IntervaloSempreMantido for 5 but 6 Int
+
