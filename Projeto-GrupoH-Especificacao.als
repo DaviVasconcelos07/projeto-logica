@@ -95,9 +95,10 @@ one sig Relogio {
 -- ============================================================
 -- FUNCAO AUXILIAR: sessoes recentes de um espectador
 -- Retorna sessoes de ingressos NAO-cortesia (cortesia = False)
--- cujo inicio esteja dentro dos ultimos 6 slots de tempo.
--- Com 1 unidade = 30 min, 6 unidades = 180 min (janela de fidelidade).
+-- cujo inicio esteja dentro dos ultimos 30 dias (janela de fidelidade).
 -- Ingressos cortesia NAO contam para fidelidade.
+-- NOTA: "30 dias" e representado por 6 slots de tempo no modelo
+-- (escala reduzida para evitar overflow com 6 Int).
 -- ============================================================
 fun sessoesRecentes[e: Espectador] : set Sessao {
     { s: Sessao | some i: Ingresso |
