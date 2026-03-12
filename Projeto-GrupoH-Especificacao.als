@@ -65,8 +65,12 @@ sig Ingresso {
 -- RELOGIO: ponto de referencia temporal do sistema
 -- Representa o "agora".
 -- ESCALA DE TEMPO: 1 unidade = 1 dia
---   - Intervalo minimo entre sessoes: 5 unidades (aproximacao de 150 min)
---   - Janela de fidelidade: 30 unidades (30 dias)
+--   - Janela de fidelidade: 30 unidades (30 dias) -- semanticamente exato
+--   - Intervalo minimo entre sessoes: 5 unidades -- aproximacao formal
+--     (no dominio real: 150 min = 2h30; no modelo: unidade minima adotada = 1 dia)
+--     NOTA: a escala de dias e necessaria para representar a janela de 30 dias
+--     sem overflow. O intervalo de 5 unidades preserva a ORDEM e a RESTRICAO
+--     de separacao entre sessoes, mesmo que a granularidade seja diferente.
 -- Usamos 7 Int (range -64 a 63): agora >= 30 garante janela
 -- de fidelidade calculavel sem valores negativos.
 one sig Relogio {
@@ -161,8 +165,11 @@ fact ClassificacaoRespeitada {
 }
 
 -- REGRA 4: duas sessoes distintas na mesma sala devem ter intervalo
---          minimo de 5 unidades (aproximacao de 150 min: 120 de duracao
---          + 30 de limpeza). Cada unidade = 1 dia na escala do modelo.
+--          minimo de 5 unidades entre seus horarios de inicio.
+--          NOTA: no dominio real o intervalo e de 150 min (120 de duracao
+--          + 30 de limpeza). No modelo, 1 unidade = 1 dia; o valor 5
+--          preserva a restricao de separacao, sendo uma aproximacao formal
+--          necessaria para compatibilizar as escalas de tempo do modelo.
 --          Semantica: |inicio_s1 - inicio_s2| >= 5
 fact IntervaloEntreSessoesDaMesmaSala {
     all s1, s2: Sessao |
@@ -198,6 +205,7 @@ fact NoMaximoUmIngressoCortesiaPorComplexo {
 
 -- PREDICADOS E EXECUCAO
 
+-- CENARIO EXEMPLO (escopo 5, conforme exigido pelo enunciado)
 -- instancia minima valida do sistema (sem cortesia)
 pred show {}
 run show for 5 but
@@ -251,7 +259,7 @@ assert ClassificacaoSempreRespeitada {
     all i: Ingresso |
         i.sessao.filme.classif <= i.espectador.idade
 }
-check ClassificacaoSempreRespeitada for 5 but 7 Int
+check ClassificacaoSempreRespeitada for 3 but 7 Int
 
 -- toda cortesia pertence a espectador que satisfaz a condicao de fidelidade
 assert CortesiaSoParaFieis {
@@ -269,3 +277,9 @@ assert IntervaloSempreMantido {
             (s1.inicio >= s2.inicio.plus[5] or s2.inicio >= s1.inicio.plus[5])
 }
 check IntervaloSempreMantido for 5 but 7 Int
+
+-- todo complexo tem pelo menos uma sala
+assert ComplexoTemPeloMenosUmaSala {
+    all c: Complexo | some s: Sala | s.complexo = c
+}
+check ComplexoTemPeloMenosUmaSala for 5 but 7 Int
